@@ -108,38 +108,36 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
-        /* Voice Assistant */
-        .voice-assistant {
-            position: fixed;
-            bottom: 30px;
-            right: 30px;
-            z-index: 1000;
+        /* Vapi Widget Styling */
+        vapi-widget {
+            position: fixed !important;
+            bottom: 30px !important;
+            right: 30px !important;
+            z-index: 1000 !important;
         }
-
-        .voice-button {
-            width: 70px;
-            height: 70px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            border: none;
-            color: white;
-            font-size: 1.5rem;
-            cursor: pointer;
-            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+        
+        /* Override default widget button styling to match dashboard */
+        vapi-widget::part(button) {
+            width: 70px !important;
+            height: 70px !important;
+            border-radius: 50% !important;
+            background: linear-gradient(135deg, #667eea, #764ba2) !important;
+            border: none !important;
+            color: white !important;
+            font-size: 1.5rem !important;
+            cursor: pointer !important;
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4) !important;
+            transition: all 0.3s ease !important;
         }
-
-        .voice-button:hover {
-            transform: scale(1.1);
-            box-shadow: 0 12px 35px rgba(102, 126, 234, 0.6);
+        
+        vapi-widget::part(button):hover {
+            transform: scale(1.1) !important;
+            box-shadow: 0 12px 35px rgba(102, 126, 234, 0.6) !important;
         }
-
-        .voice-button.listening {
-            animation: pulse 1.5s infinite;
-            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+        
+        vapi-widget::part(button-active) {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a24) !important;
+            animation: pulse 1.5s infinite !important;
         }
 
         @keyframes pulse {
@@ -439,9 +437,12 @@
 
     <!-- Voice Assistant -->
     <div class="voice-assistant">
-        <button class="voice-button" id="voiceButton">
-            🎤
-        </button>
+        <!-- Vapi Widget Integration -->
+        <vapi-widget 
+            assistant-id="d2572015-8bb2-4043-8913-87400a590bc5" 
+            public-key="1f96e572-7a5b-4b45-ba8b-0dc2721ca738"
+            style="position: fixed; bottom: 30px; right: 30px; z-index: 1000;">
+        </vapi-widget>
     </div>
 
     <!-- Voice Status Indicator -->
@@ -449,7 +450,134 @@
         Listening... Speak now!
     </div>
 
+    <!-- Vapi Widget SDK -->
+    <script
+        src="https://unpkg.com/@vapi-ai/client-sdk-react/dist/embed/widget.umd.js"
+        async
+        type="text/javascript">
+    </script>
+    
     <script>
+        // Vapi Widget Integration and Dashboard Control
+        let vapiWidget = null;
+        
+        // Wait for Vapi widget to load and initialize dashboard integration
+        document.addEventListener('DOMContentLoaded', function() {
+            // Give the widget time to load
+            setTimeout(initializeVapiIntegration, 2000);
+        });
+        
+        function initializeVapiIntegration() {
+            // The widget handles all voice functionality automatically
+            // We just need to listen for any custom events or messages
+            
+            console.log('Vapi widget loaded and ready');
+            
+            // Optional: Listen for widget events if available
+            // This depends on what events the widget exposes
+            window.addEventListener('message', function(event) {
+                // Handle any messages from the Vapi widget
+                if (event.data && event.data.type === 'vapi-widget') {
+                    console.log('Vapi widget message:', event.data);
+                    handleVapiWidgetMessage(event.data);
+                }
+            });
+        }
+        
+        function handleVapiWidgetMessage(data) {
+            // Handle messages from the Vapi widget
+            // This could include conversation events, function calls, etc.
+            
+            switch(data.event) {
+                case 'call-start':
+                    console.log('Voice call started');
+                    showVoiceStatus('Connected to AI assistant...');
+                    break;
+                    
+                case 'call-end':
+                    console.log('Voice call ended');
+                    hideVoiceStatus();
+                    break;
+                    
+                case 'assistant-response':
+                    if (data.message) {
+                        processAssistantResponse(data.message);
+                    }
+                    break;
+                    
+                default:
+                    console.log('Unknown widget event:', data.event);
+            }
+        }
+        
+        // Dashboard control functions that the voice assistant can trigger
+        function processAssistantResponse(message) {
+            const response = message.toLowerCase();
+            
+            // Parse assistant responses for dashboard commands
+            if (response.includes('showing') || response.includes('here') || response.includes('displaying')) {
+                if (response.includes('schedule') || response.includes('calendar')) {
+                    switchView('schedule');
+                    showVoiceStatus('Showing master schedule');
+                } else if (response.includes('crew') || response.includes('team') || response.includes('workers')) {
+                    switchView('crew');
+                    showVoiceStatus('Showing crew management');
+                } else if (response.includes('problem') || response.includes('issue') || response.includes('delay')) {
+                    switchView('problems');
+                    showVoiceStatus('Showing problem resolution');
+                } else if (response.includes('overview') || response.includes('project')) {
+                    switchView('overview');
+                    showVoiceStatus('Showing project overview');
+                }
+            }
+            
+            // Handle specific project mentions
+            if (response.includes('johnson') || response.includes('adu')) {
+                switchView('overview');
+                highlightProject('johnson-adu');
+                showVoiceStatus('Highlighting Johnson ADU project');
+            } else if (response.includes('smith') || response.includes('kitchen')) {
+                switchView('overview');
+                highlightProject('smith-kitchen');
+                showVoiceStatus('Highlighting Smith kitchen project');
+            } else if (response.includes('brown') || response.includes('bathroom')) {
+                switchView('overview');
+                highlightProject('brown-bathroom');
+                showVoiceStatus('Highlighting Brown bathroom project');
+            }
+            
+            // Handle crew member queries
+            if (response.includes('bob')) {
+                switchView('crew');
+                highlightCrewMember('bob');
+                showVoiceStatus('Showing Bob\'s information');
+            } else if (response.includes('jeff')) {
+                switchView('crew');
+                highlightCrewMember('jeff');
+                showVoiceStatus('Showing Jeff\'s information');
+            } else if (response.includes('mike')) {
+                switchView('crew');
+                highlightCrewMember('mike');
+                showVoiceStatus('Showing Mike\'s information');
+            }
+        }
+        
+        function showVoiceStatus(message) {
+            const voiceStatus = document.getElementById('voiceStatus');
+            if (voiceStatus) {
+                voiceStatus.textContent = message;
+                voiceStatus.classList.add('show');
+                setTimeout(() => voiceStatus.classList.remove('show'), 3000);
+            }
+        }
+        
+        function hideVoiceStatus() {
+            const voiceStatus = document.getElementById('voiceStatus');
+            if (voiceStatus) {
+                voiceStatus.classList.remove('show');
+            }
+        }
+
         // Dashboard Navigation
         const navItems = document.querySelectorAll('.nav-item');
         const viewSections = document.querySelectorAll('.view-section');
@@ -500,14 +628,237 @@
             console.log(`Dashboard switched to: ${viewName}`);
         }
 
-        // Voice Assistant with Real Speech Recognition
+        // Initialize Vapi when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeVapi();
+        });
+
+        function initializeVapi() {
+            try {
+                vapi = new Vapi(VAPI_PUBLIC_KEY);
+                
+                // Vapi event listeners
+                vapi.on('call-start', () => {
+                    console.log('Vapi call started');
+                    isVapiConnected = true;
+                    voiceButton.classList.add('listening');
+                    voiceButton.innerHTML = '🔴';
+                    voiceStatus.textContent = 'Connected to AI assistant...';
+                    voiceStatus.classList.add('show');
+                });
+                
+                vapi.on('call-end', () => {
+                    console.log('Vapi call ended');
+                    isVapiConnected = false;
+                    voiceButton.classList.remove('listening');
+                    voiceButton.innerHTML = '🎤';
+                    voiceStatus.classList.remove('show');
+                });
+                
+                vapi.on('speech-start', () => {
+                    console.log('User started speaking');
+                    voiceStatus.textContent = 'Listening...';
+                });
+                
+                vapi.on('speech-end', () => {
+                    console.log('User stopped speaking');
+                    voiceStatus.textContent = 'Processing...';
+                });
+                
+                vapi.on('message', (message) => {
+                    console.log('Vapi message:', message);
+                    
+                    // Handle function calls from the assistant
+                    if (message.type === 'function-call') {
+                        handleVapiFunction(message);
+                    }
+                    
+                    // Handle assistant responses
+                    if (message.type === 'transcript' && message.role === 'assistant') {
+                        voiceStatus.textContent = message.transcript;
+                        processAssistantResponse(message.transcript);
+                    }
+                });
+                
+                vapi.on('error', (error) => {
+                    console.error('Vapi error:', error);
+                    voiceStatus.textContent = 'Voice assistant error. Please try again.';
+                    stopVapiCall();
+                });
+                
+                console.log('Vapi initialized successfully');
+                
+            } catch (error) {
+                console.error('Failed to initialize Vapi:', error);
+                // Fall back to browser speech recognition
+                initializeBrowserSpeechRecognition();
+            }
+        }
+
+        function startVapiCall() {
+            if (!vapi) {
+                console.error('Vapi not initialized');
+                return;
+            }
+            
+            try {
+                vapi.start({
+                    assistantId: ASSISTANT_ID,
+                    // Optional: Add assistant overrides
+                    assistant: {
+                        // You can override assistant settings here if needed
+                        firstMessage: "Hey there! I'm your Opulence construction assistant. What do you need help with today?",
+                    }
+                });
+            } catch (error) {
+                console.error('Error starting Vapi call:', error);
+                voiceStatus.textContent = 'Failed to connect to voice assistant';
+                voiceStatus.classList.add('show');
+            }
+        }
+        
+        function stopVapiCall() {
+            if (vapi && isVapiConnected) {
+                vapi.stop();
+            }
+        }
+        
+        // Handle function calls from Vapi assistant
+        function handleVapiFunction(message) {
+            const functionName = message.functionCall?.name;
+            const parameters = message.functionCall?.parameters;
+            
+            console.log('Assistant function call:', functionName, parameters);
+            
+            // Dashboard control functions
+            switch (functionName) {
+                case 'switch_dashboard_view':
+                    if (parameters?.view) {
+                        switchView(parameters.view);
+                    }
+                    break;
+                    
+                case 'highlight_project':
+                    if (parameters?.projectName) {
+                        highlightProjectByName(parameters.projectName);
+                    }
+                    break;
+                    
+                case 'show_crew_member':
+                    if (parameters?.memberName) {
+                        switchView('crew');
+                        highlightCrewMember(parameters.memberName);
+                    }
+                    break;
+                    
+                default:
+                    console.log('Unknown function call:', functionName);
+            }
+        }
+        
+        // Process assistant text responses for dashboard actions
+        function processAssistantResponse(transcript) {
+            const response = transcript.toLowerCase();
+            
+            // Extract dashboard commands from assistant responses
+            if (response.includes('showing') || response.includes('here') || response.includes('displaying')) {
+                if (response.includes('schedule')) {
+                    switchView('schedule');
+                } else if (response.includes('crew') || response.includes('team')) {
+                    switchView('crew');
+                } else if (response.includes('problem') || response.includes('issue')) {
+                    switchView('problems');
+                } else if (response.includes('overview') || response.includes('project')) {
+                    switchView('overview');
+                }
+            }
+        }
+
+        // Voice Assistant Button Handler (Updated for Vapi)
         const voiceButton = document.getElementById('voiceButton');
         const voiceStatus = document.getElementById('voiceStatus');
-        let isListening = false;
-        let recognition = null;
 
-        // Check for speech recognition support
-        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+        voiceButton.addEventListener('click', toggleVapiCall);
+
+        function toggleVapiCall() {
+            if (isVapiConnected) {
+                stopVapiCall();
+            } else {
+                startVapiCall();
+            }
+        }
+
+        // Fallback: Browser Speech Recognition (if Vapi fails)
+        function initializeBrowserSpeechRecognition() {
+            console.log('Falling back to browser speech recognition');
+            
+            // Your existing browser speech recognition code here
+            if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                recognition = new SpeechRecognition();
+                
+                recognition.continuous = false;
+                recognition.interimResults = true;
+                recognition.lang = 'en-US';
+                
+                recognition.onstart = function() {
+                    console.log('Browser speech recognition started');
+                    voiceStatus.textContent = 'Listening... Speak now!';
+                };
+                
+                recognition.onresult = function(event) {
+                    let finalTranscript = '';
+                    for (let i = event.resultIndex; i < event.results.length; i++) {
+                        if (event.results[i].isFinal) {
+                            finalTranscript += event.results[i][0].transcript;
+                        }
+                    }
+                    
+                    if (finalTranscript) {
+                        voiceStatus.textContent = `You said: "${finalTranscript}"`;
+                        console.log('Final transcript:', finalTranscript);
+                        processVoiceCommand(finalTranscript);
+                    }
+                };
+                
+                recognition.onerror = function(event) {
+                    console.error('Speech recognition error:', event.error);
+                    voiceStatus.textContent = `Error: ${event.error}`;
+                };
+                
+                recognition.onend = function() {
+                    console.log('Browser speech recognition ended');
+                    voiceButton.classList.remove('listening');
+                    voiceButton.innerHTML = '🎤';
+                };
+                
+                // Update button handler for fallback mode
+                voiceButton.removeEventListener('click', toggleVapiCall);
+                voiceButton.addEventListener('click', function() {
+                    if (recognition) {
+                        voiceButton.classList.add('listening');
+                        voiceButton.innerHTML = '🔴';
+                        voiceStatus.classList.add('show');
+                        recognition.start();
+                    }
+                });
+            }
+        }
+
+        // Helper function for highlighting projects by name
+        function highlightProjectByName(projectName) {
+            const name = projectName.toLowerCase();
+            if (name.includes('johnson') || name.includes('adu')) {
+                switchView('overview');
+                highlightProject('johnson-adu');
+            } else if (name.includes('smith') || name.includes('kitchen')) {
+                switchView('overview');
+                highlightProject('smith-kitchen');
+            } else if (name.includes('brown') || name.includes('bathroom')) {
+                switchView('overview');
+                highlightProject('brown-bathroom');
+            }
+        }
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
             recognition = new SpeechRecognition();
             
@@ -774,7 +1125,7 @@
             }
         }
 
-        // Voice Agent Integration Functions
+        // Voice Agent Integration Functions (Updated for Vapi)
         window.dashboardControl = {
             switchView: switchView,
             getCurrentView: () => {
@@ -783,26 +1134,15 @@
             },
             updateProjectData: (data) => {
                 console.log('Updating project data:', data);
-                // This will be connected to real data updates
+                // This will be connected to real data updates from n8n
             },
             showNotification: (message) => {
                 voiceStatus.textContent = message;
                 voiceStatus.classList.add('show');
                 setTimeout(() => voiceStatus.classList.remove('show'), 3000);
-            }
+            },
+            // New Vapi integration functions
+            startVoiceCall: startVapiCall,
+            stopVoiceCall: stopVapiCall,
+            isVoiceConnected: () => isVapiConnected
         };
-
-        // Update current time
-        function updateTime() {
-            const now = new Date();
-            document.getElementById('current-time').textContent = now.toLocaleTimeString();
-        }
-
-        setInterval(updateTime, 1000);
-        updateTime();
-
-        // Log dashboard ready
-        console.log('Opulence Dashboard initialized and ready for voice integration');
-    </script>
-</body>
-</html>
